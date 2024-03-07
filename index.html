@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Observer</title>
+<style>
+    body { font-family: Arial, sans-serif; }
+    #updates { margin-top: 20px; }
+</style>
+</head>
+<body>
+<h2>Game Updates</h2>
+<div id="updates"></div>
+
+<script>
+    const updatesElement = document.getElementById('updates');
+
+    // Update the WebSocket URL to match your WebSocket server address and port
+    const ws = new WebSocket('ws://localhost:8081');
+
+    ws.onmessage = function(event) {
+        const msg = document.createElement('p');
+        msg.textContent = event.data;
+        updatesElement.appendChild(msg);
+    };
+
+    ws.onerror = function(event) {
+        console.error('WebSocket error:', event);
+    };
+</script>
+</body>
+</html>

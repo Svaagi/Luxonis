@@ -14,6 +14,7 @@ client.on('data', (data) => {
     const messageType = data.readUInt8(0);
     const contentLength = data.readUInt8(1);
     const messageContent = data.slice(2, 2 + contentLength).toString();
+    
 
     console.log(`Received: ${messageContent}`);
 

@@ -1,4 +1,6 @@
 import * as net from 'net';
+import { WebSocketServer, WebSocket } from 'ws';
+
 
 interface Client {
     socket: net.Socket;
@@ -10,9 +12,10 @@ interface Client {
 }
 
 const PORT = 8080;
-const PASSWORD = 'secret';
+const WSPORT = 8081;
+const PASSWORD = 'luxonis';
 let clients: Client[] = [];
-let clientIdCounter = 0; // Counter for unique client IDs
+let clientIdCounter = 0;
 
 function createMessage(type: number, content: string = ''): Buffer {
     const contentBuffer = Buffer.from(content, 'utf-8');
@@ -23,9 +26,28 @@ function createMessage(type: number, content: string = ''): Buffer {
     return buffer;
 }
 
+// WebSocket server for broadcasting game updates
+const wss = new WebSocketServer({ port: WSPORT });
+let webClients: WebSocket[] = [];
+
+wss.on('connection', function connection(ws: WebSocket) {
+    webClients.push(ws);
+    ws.on('close', () => {
+        webClients = webClients.filter(client => client !== ws);
+    });
+});
+
+function broadcastToWebClients(message: string) {
+    webClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+}
+
 const server = net.createServer((socket) => {
     console.log('Client connected');
-    const client: Client = { socket, id: `Client${++clientIdCounter}`, role: 'none' }; // Increment counter for each new client
+    const client: Client = { socket, id: `Client${++clientIdCounter}`, role: 'none' };
     socket.write(createMessage(0x01, 'Welcome! Please send the password.'));
 
     socket.on('data', (data) => {
@@ -54,6 +76,10 @@ const server = net.createServer((socket) => {
                     client.socket.write(createMessage(0x04, "Error: You cannot play against yourself."));
                     break;
                 }
+                if (!opponentId || !word.trim()) {
+                    client.socket.write(createMessage(0x04, "Error: Invalid match request."));
+                    break;
+                }
                 const opponent = clients.find(c => c.id === opponentId);
                 if (!opponent) {
                     client.socket.write(createMessage(0x04, "Error: Opponent ID does not exist."));
@@ -74,6 +100,9 @@ const server = net.createServer((socket) => {
                     opponent.socket.write(createMessage(0x08, `Match started. Guess the word set by ${client.id}. Hint: ${hint}`));
                     socket.write(createMessage(0x08, `Match started. Your word: "${word}" is being guessed by ${opponent.id}. Hint: ${hint}`));
                 }
+
+                broadcastToWebClients(`Match started between ${client.id} and ${opponent.id} with the word to guess.`);
+
         
                 break;
             
@@ -93,6 +122,8 @@ const server = net.createServer((socket) => {
                             setter.opponentId = undefined;
                             setter.wordToGuess = undefined; // Also clear the word to guess
                         }
+                        broadcastToWebClients(`Guess made by ${client.id}: "${content}" is ${result}.`);
+
                     } else {
                         client.socket.write(createMessage(0x04, "Error: Your match opponent is no longer available."));
                     }
@@ -112,6 +143,7 @@ const server = net.createServer((socket) => {
                         client.opponentId = undefined;
                         setter.opponentId = undefined;
                         setter.wordToGuess = undefined;
+                        broadcastToWebClients(`${client.id} has given up on guessing the word.`);
                     }
                 } else {
                     client.socket.write(createMessage(0x04, 'Error: You are not currently guessing.'));
@@ -124,24 +156,30 @@ const server = net.createServer((socket) => {
         }
     });
 
-    // Ensure the server has error handling to catch and log errors without shutting down
-    server.on('error', (err) => {
-        console.error(`Server error: ${err.message}`);
-    });
-
-    // This ensures the server does not shut down on client disconnect
-    socket.on('error', (err) => {
-        console.error(`Socket error: ${err.message}`);
-    });
-
     socket.on('end', () => {
-        console.log(`${client.id} disconnected.`);
-        clients = clients.filter(c => c.id !== client.id);
+        handleClientDisconnection(client);
+    });
+
+    socket.on('error', (err) => {
+        console.error(`Socket error from ${client.id}: ${err.message}`);
     });
 });
+
+function handleClientDisconnection(client: Client) {
+    console.log(`${client.id} disconnected.`);
+    const opponentId = client.opponentId;
+    clients = clients.filter(c => c.id !== client.id);
+    if (opponentId) {
+        const opponent = clients.find(c => c.id === opponentId);
+        if (opponent) {
+            opponent.socket.write(createMessage(0x04, `${client.id} has disconnected. Match ended.`));
+            opponent.opponentId = undefined;
+            opponent.role = 'none';
+            broadcastToWebClients(`Game update: ${client.id} has disconnected. Match with ${opponentId} ended.`);
+        }
+    }
+}
 
 server.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 });
-
-
