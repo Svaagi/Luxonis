@@ -1,38 +1,49 @@
-# Task Solution README by Jozef Švagerko
+# Luxonis TCP Word Guessing Game
 
 ## Introduction
-This README documents the step-by-step approach I used to resolve the given task, which involved debugging and fixing errors in a provided `index.html` file.
 
-## Steps Taken
+This project is a part of the job application process for Luxonis. It showcases a client-server application that utilizes TCP sockets to facilitate a word guessing game. The implementation demonstrates proficiency in networking, protocol design, and TypeScript.
 
-1. **Code Assessment**:
-   Pasted the obfuscated `index.html` content from DevTools into my IDE to assess the code structure.
+## Overview
 
-2. **Deobfuscation**:
-   Utilized online tools and manual analysis to deobfuscate the code and rename variables to be more readable.
+The game allows multiple clients to connect to a server over TCP. Clients can authenticate, find opponents, initiate a guessing game, and either guess the word or give up. The server manages client connections, authentication, and game state, ensuring a smooth gameplay experience.
 
-3. **Debugging**:
-   Began debugging by addressing errors identified in the DevTools Console.
+## Features
 
-4. **Identifying Issues**:
-   Discovered that `window.loadAndExecuteScript` function was responsible for errors due to a missing `.js` file.
+- **TCP Sockets**: Utilizes TCP sockets for communication between the server and clients.
+- **Custom Binary Protocol**: Implements a custom binary protocol over TCP for efficient data exchange.
+- **Authentication**: Clients must authenticate with a predefined password upon connection.
+- **Dynamic Matchmaking**: Clients can request a list of connected opponents and choose one for the game.
+- **Word Guessing Game**: Supports initiating a match, setting a word, guessing words, and giving up.
 
-5. **Verifying the Script URL**:
-   Conducted a thorough check for typos and potential discrepancies in the script URL and its references in the code and DevTools network tab.
+## Setup
 
-6. **Review and Removal**:
-   After ensuring the script was indeed non-existent and not referenced elsewhere in the code, I concluded it was unnecessary and removed the function call.
+### Requirements
 
-7. **Final Testing**:
-   Performed functional testing to confirm that the code operated correctly without the removed script. Ensured the matrix effect was running smoothly in the browser.
+- Node.js (v14 or newer recommended)
+- TypeScript
+- A terminal or command prompt capable of running Node.js applications
 
-8. **Documentation**:
-   Added detailed comments throughout the code for clarity and future maintainability.
+### Running the Server
 
-## Testing Details
+1. Navigate to the server directory.
+2. Compile TypeScript files to JavaScript: `tsc server.ts`
+3. Start the server: `node server.js`
+4. The server will listen on TCP port 8080 for client connections.
 
-The final testing phase included visual confirmation of the matrix effect and monitoring the DevTools Console for any errors. The absence of any errors indicated that the removed script was not integral to the functionality.
+### Running a Client
 
-## Conclusion
+1. Navigate to the client directory.
+2. Compile TypeScript files to JavaScript: `tsc client.ts`
+3. Start the client: `node client.js`
+4. Follow the prompts for authentication and game actions.
 
-The code has been successfully debugged and the functionality has been verified. This README provides a transparent record of the methods used to resolve the given task.
+## Game Commands
+
+- **guess**: Make a guess for the current word.
+- **opponents**: List available opponents for initiating a match.
+- **give up**: Concede the current match.
+
+## Development Notes
+
+- This application was developed as a part of the selection
